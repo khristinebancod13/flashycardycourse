@@ -1,0 +1,155 @@
+---
+alwaysApply: true
+---
+# Next.js Data Handling Standards
+
+This project follows strict data handling patterns for server-side operations and validation.
+
+## Data Retrieval - Server Components Only
+
+- **All data retrieval must be done via Server Components**
+- Never fetch data in Client Components - use Server Components and pass data down as props
+- Server Components should handle all database queries and API calls
+- Use the Drizzle database setup from [src/db/index.ts](mdc:src/db/index.ts) and [src/db/schema.ts](mdc:src/db/schema.ts)
+
+### Correct Pattern:
+```typescript
+// Server Component
+import { db } from "@/db";
+import { decksTable } from "@/db/schema";
+
+export default async function DecksPage() {
+  const decks = await db.select().from(decksTable);
+  return <DecksList decks={decks} />;
+}
+```
+
+### Incorrect Pattern:
+```typescript
+// Client Component - DON'T DO THIS
+"use client";
+import { useEffect, useState } from "react";
+
+export default function DecksPage() {
+  const [decks, setDecks] = useState([]);
+  
+  useEffect(() => {
+    fetch('/api/decks').then(/* ... */); // ❌ Wrong approach
+  }, []);
+}
+```
+
+## Database Mutations - Server Actions Only
+
+- **All database updates, deletes, and inserts must be done via Server Actions**
+- Server Actions should be defined with the `"use server"` directive
+- Server Actions should handle all database mutations and side effects
+- Never perform mutations directly in API routes or Client Components
+
+### Correct Pattern:
+```typescript
+// Server Action
+"use server";
+import { db } from "@/db";
+import { decksTable } from "@/db/schema";
+
+export async function createDeck(data: CreateDeckSchema) {
+  const validatedData = createDeckSchema.parse(data);
+  return await db.insert(decksTable).values(validatedData);
+}
+```
+
+## Data Validation - Zod Required
+
+- **All data validation must be done using Zod**
+- **All data passed to Server Actions must be validated by Zod**
+- **All Server Action parameters must have a TypeScript type (DO NOT use FormData as the type)**
+- Define Zod schemas for all data structures
+- Validate data at the Server Action boundary before database operations
+
+### Required Patterns:
+
+**1. Define Zod Schemas:**
+```typescript
+import { z } from "zod";
+
+export const createDeckSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  userId: z.string().min(1, "User ID is required")
+});
+
+export type CreateDeckSchema = z.infer<typeof createDeckSchema>;
+```
+
+**2. Server Actions with Typed Parameters:**
+```typescript
+"use server";
+
+export async function createDeck(data: CreateDeckSchema) {
+  // Validate the data
+  const validatedData = createDeckSchema.parse(data);
+  
+  // Perform database operation
+  return await db.insert(decksTable).values(validatedData);
+}
+```
+
+**3. Client-side Form Handling:**
+```typescript
+"use client";
+
+import { createDeck } from "./actions";
+import type { CreateDeckSchema } from "./schemas";
+
+export function DeckForm() {
+  const handleSubmit = async (formData: FormData) => {
+    // Convert FormData to typed object
+    const data: CreateDeckSchema = {
+      name: formData.get("name") as string,
+      description: formData.get("description") as string,
+      userId: getCurrentUserId()
+    };
+    
+    // Pass typed data to Server Action
+    await createDeck(data);
+  };
+}
+```
+
+## Prohibited Patterns
+
+### ❌ DON'T: Use FormData as Server Action parameter type
+```typescript
+// Wrong - Don't do this
+export async function createDeck(formData: FormData) {
+  const name = formData.get("name"); // Untyped and unvalidated
+}
+```
+
+### ❌ DON'T: Skip Zod validation
+```typescript
+// Wrong - Don't do this  
+export async function createDeck(data: any) {
+  return await db.insert(decksTable).values(data); // Unvalidated data
+}
+```
+
+### ❌ DON'T: Fetch data in Client Components
+```typescript
+// Wrong - Don't do this
+"use client";
+export function UserDecks() {
+  useEffect(() => {
+    fetchDecks(); // Should be done in Server Component
+  }, []);
+}
+```
+
+## Summary
+
+1. **Server Components** → Data retrieval only
+2. **Server Actions** → Database mutations only  
+3. **Zod** → All data validation
+4. **TypeScript types** → All Server Action parameters (never FormData)
+5. **Parse before persist** → Always validate with Zod before database operations

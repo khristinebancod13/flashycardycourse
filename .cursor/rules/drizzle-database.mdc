@@ -1,0 +1,90 @@
+---
+alwaysApply: true
+---
+# Drizzle Database Interaction Standards
+
+All database interactions in this project must use Drizzle ORM with the defined schema and queries.
+
+## Database Setup
+
+- Database instance: Import `db` from [src/db/index.ts](mdc:src/db/index.ts)
+- Schema definitions: Import tables from [src/db/schema.ts](mdc:src/db/schema.ts)
+- Database: Neon PostgreSQL with Drizzle ORM
+
+## Available Tables
+
+### Decks Table (`decksTable`)
+```typescript
+{
+  id: integer (primary key, auto-generated)
+  name: varchar(255, required)
+  description: text (optional)
+  userId: varchar(255, required) // Clerk user ID
+  createdAt: timestamp (auto-generated)
+  updatedAt: timestamp (auto-generated)
+}
+```
+
+### Cards Table (`cardsTable`)
+```typescript
+{
+  id: integer (primary key, auto-generated)
+  deckId: integer (required, foreign key to decks.id, cascade delete)
+  front: text (required)
+  back: text (required)
+  createdAt: timestamp (auto-generated)
+  updatedAt: timestamp (auto-generated)
+}
+```
+
+## Required Import Pattern
+
+```typescript
+import { db } from "@/db";
+import { decksTable, cardsTable } from "@/db/schema";
+```
+
+## Database Operation Standards
+
+### Query Operations
+- Use `db.select()` for SELECT queries
+- Use `db.insert()` for INSERT operations
+- Use `db.update()` for UPDATE operations
+- Use `db.delete()` for DELETE operations
+
+### Schema References
+- Always import and reference `decksTable` and `cardsTable` from the schema
+- Never use raw SQL strings or table names as strings
+- Use proper Drizzle query builders with schema references
+
+### Example Patterns
+
+**Correct:**
+```typescript
+// Select with schema reference
+const decks = await db.select().from(decksTable).where(eq(decksTable.userId, userId));
+
+// Insert with schema reference
+const newDeck = await db.insert(decksTable).values({
+  name,
+  description,
+  userId
+}).returning();
+```
+
+**Incorrect:**
+```typescript
+// Don't use raw SQL
+const decks = await db.execute(sql`SELECT * FROM decks WHERE user_id = ${userId}`);
+
+// Don't use string table names
+const decks = await db.select().from("decks");
+```
+
+## Required Practices
+
+1. **Always use schema imports** - Never reference tables by string names
+2. **Use type-safe queries** - Leverage Drizzle's TypeScript integration
+3. **Handle relations properly** - Use `references()` for foreign keys as defined in schema
+4. **Use proper error handling** - Wrap database operations in try/catch blocks
+5. **Respect cascade deletes** - Cards are automatically deleted when parent deck is deleted

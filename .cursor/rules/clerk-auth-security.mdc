@@ -1,0 +1,129 @@
+---
+alwaysApply: true
+---
+
+# Clerk Authentication & Authorization Standards
+
+This project uses **Clerk** for authentication and authorization. Security is paramount - users must only access their own data.
+
+## Core Security Principle
+
+**NEVER allow users to access data that doesn't belong to them.** Always verify user ownership before any data operation.
+
+## Authentication Setup
+
+- Authentication provider: Clerk
+- User identification: Use `userId` from Clerk's authentication context
+- User ID format: Clerk's unique user identifier string
+
+## Data Access Patterns
+
+### Required User ID Verification
+
+**Always filter database queries by the authenticated user's ID:**
+
+```typescript
+// Correct: Always filter by userId
+const userDecks = await db.select()
+  .from(decksTable)
+  .where(eq(decksTable.userId, userId));
+
+// Correct: Verify ownership before operations
+const deck = await db.select()
+  .from(decksTable)
+  .where(and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId)
+  ));
+```
+
+**Incorrect patterns that MUST be avoided:**
+
+```typescript
+// NEVER: Unfiltered queries expose all users' data
+const allDecks = await db.select().from(decksTable);
+
+// NEVER: Direct ID access without user verification
+const deck = await db.select()
+  .from(decksTable)
+  .where(eq(decksTable.id, deckId)); // Missing userId check!
+```
+
+## API Route Security
+
+### Server Actions & API Routes
+
+**Always get and verify user ID first:**
+
+```typescript
+import { auth } from "@clerk/nextjs/server";
+
+export async function createDeck(name: string) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+  
+  // Safe: userId is verified
+  return db.insert(decksTable).values({
+    name,
+    userId // Always include userId
+  });
+}
+```
+
+### Resource Access Validation
+
+**Always verify ownership before accessing resources:**
+
+```typescript
+// Check deck ownership before allowing card operations
+const deck = await db.select()
+  .from(decksTable)
+  .where(and(
+    eq(decksTable.id, deckId),
+    eq(decksTable.userId, userId)
+  ));
+
+if (!deck.length) {
+  throw new Error("Deck not found or access denied");
+}
+```
+
+## Common Security Patterns
+
+### Database Query Filters
+
+1. **Decks**: Always filter by `decksTable.userId`
+2. **Cards**: Filter by deck ownership (verify deck belongs to user first)
+3. **Any user data**: Must include user ID verification
+
+### Error Handling
+
+- Use generic "Not found" errors to avoid information leakage
+- Don't reveal whether a resource exists if user doesn't own it
+- Log security violations for monitoring
+
+### Frontend Components
+
+- Use Clerk's `useUser()` hook for client-side user context
+- Redirect unauthorized users appropriately
+- Hide UI elements for resources user doesn't own
+
+## Required Practices
+
+1. **Never skip user ID checks** - Every database operation must verify user ownership
+2. **Use parameterized queries** - Always use Drizzle's query builders with proper filters
+3. **Validate on server** - Never trust client-side user ID; always get from Clerk server-side
+4. **Principle of least privilege** - Users can only access their own data, nothing more
+5. **Audit data access** - Log and monitor for unauthorized access attempts
+
+## Security Checklist
+
+Before any data operation, ensure:
+- [ ] User is authenticated (userId exists)
+- [ ] Database query filters by userId
+- [ ] Resource ownership is verified
+- [ ] Error messages don't leak information
+- [ ] Client-side UI reflects user permissions

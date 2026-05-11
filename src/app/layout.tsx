@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
+import { ClerkProvider, SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
+import { Button } from "@/components/ui/button";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -25,9 +24,35 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${poppins.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ClerkProvider
+          appearance={{
+            theme: dark,
+          }}
+        >
+          <header className="p-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="font-semibold text-lg">FlashyCardyCourse</div>
+              <nav className="flex items-center gap-4">
+                <Show when="signed-out">
+                  <Button variant="outline" asChild>
+                    <SignInButton mode="modal">Sign In</SignInButton>
+                  </Button>
+                  <Button asChild>
+                    <SignUpButton mode="modal">Sign Up</SignUpButton>
+                  </Button>
+                </Show>
+                <Show when="signed-in">
+                  <UserButton />
+                </Show>
+              </nav>
+            </div>
+          </header>
+          {children}
+        </ClerkProvider>
+      </body>
     </html>
   );
 }
