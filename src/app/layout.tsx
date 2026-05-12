@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -42,6 +43,7 @@ export default function RootLayout({
             </div>
           </header>
           {children}
+          <Toaster richColors closeButton duration={3000} />
         </ClerkProvider>
       </body>
     </html>
