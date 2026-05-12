@@ -3,7 +3,39 @@ alwaysApply: true
 ---
 # shadcn/ui Component Library Standards
 
-This project uses **shadcn/ui** for all UI elements and components.
+This project uses **shadcn/ui** as the **EXCLUSIVE** UI component library. No exceptions.
+
+## Absolute Requirements
+
+- **ONLY shadcn/ui components may be used for ALL UI in this project — no exceptions**
+- **NEVER create custom UI components from scratch** — if a shadcn/ui component exists for the use case, use it
+- **NEVER write custom CSS classes, inline styles, or styled components** for UI elements that shadcn/ui already covers
+- If a shadcn/ui component does not exist for a specific need, extend or compose existing shadcn/ui components rather than building custom alternatives
+- These rules apply to every file in the project, without exception
+- This project is in dark mode so make sure there are no dark colored text on dark backgrounds (and vice versa)
+
+## Clerk Authentication UI
+
+- **ALL Clerk sign-in and sign-up buttons must use the shadcn/ui `<Button>` component** — never use Clerk's default button styling or custom button markup
+- **Clerk sign-in and sign-up flows must be launched via a modal** — use Clerk's `modal` mode (not redirect mode) so authentication appears in an overlay without navigating away from the current page
+- Configure Clerk's `<SignInButton>` and `<SignUpButton>` with `mode="modal"` and wrap them in the shadcn/ui `<Button>` component:
+
+```tsx
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+
+// Correct: shadcn/ui Button + Clerk modal mode
+<SignInButton mode="modal">
+  <Button>Sign In</Button>
+</SignInButton>
+
+<SignUpButton mode="modal">
+  <Button>Sign Up</Button>
+</SignUpButton>
+```
+
+- **NEVER** render Clerk's `<SignIn>` or `<SignUp>` components as full-page embedded forms — always use modal mode
+- **NEVER** use raw `<button>` or `<a>` tags as Clerk trigger elements — always wrap with the shadcn/ui `<Button>`
 
 ## Initialization
 
@@ -26,17 +58,44 @@ npx shadcn@latest add [component-name]
 npx shadcn@latest add button
 ```
 
-## Standards
+## Prohibited Patterns
 
-- **Always use shadcn/ui components** for UI elements instead of creating custom components from scratch
-- Check if a component exists in shadcn/ui before implementing custom alternatives
-- Follow shadcn/ui component patterns and conventions
-- Use the official shadcn/ui installation commands to add new components to the project
+### ❌ DON'T: Create custom button or UI elements
+```tsx
+// Wrong - custom button markup
+<button className="bg-blue-500 text-white px-4 py-2 rounded">Click me</button>
+
+// Wrong - custom styled div acting as a button
+<div onClick={handleClick} className="cursor-pointer ...">Click me</div>
+```
+
+### ❌ DON'T: Use Clerk buttons without shadcn/ui wrapper
+```tsx
+// Wrong - raw Clerk button with no shadcn/ui Button
+<SignInButton mode="modal" />
+
+// Wrong - redirect mode instead of modal
+<SignInButton mode="redirect">
+  <Button>Sign In</Button>
+</SignInButton>
+```
+
+### ✅ DO: Always use shadcn/ui components
+```tsx
+// Correct - shadcn/ui Button
+import { Button } from "@/components/ui/button";
+<Button variant="default">Click me</Button>
+
+// Correct - Clerk modal with shadcn/ui Button
+<SignInButton mode="modal">
+  <Button variant="outline">Sign In</Button>
+</SignInButton>
+```
 
 ## Common Components
 
 Some frequently used shadcn/ui components include:
-- `button` - Interactive buttons
+- `button` - Interactive buttons (required for ALL clickable elements)
 - `card` - Content containers
 - `input` - Form inputs
 - `dialog` - Modal dialogs

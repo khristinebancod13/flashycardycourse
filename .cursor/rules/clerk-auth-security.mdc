@@ -16,6 +16,54 @@ This project uses **Clerk** for authentication and authorization. Security is pa
 - User identification: Use `userId` from Clerk's authentication context
 - User ID format: Clerk's unique user identifier string
 
+## Unauthenticated User Redirects
+
+**This app has no dedicated sign-in page.** The homepage (`/`) is where sign-in and sign-up buttons are located.
+
+- **Always redirect unauthenticated users to `/`** — never to `/sign-in`, `/login`, or any other route
+- Apply this in Server Components, Server Actions, and middleware
+
+### Correct Pattern (Server Component):
+```typescript
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/");
+  }
+
+  // ... rest of page
+}
+```
+
+### Correct Pattern (middleware):
+```typescript
+// middleware.ts
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+
+export default clerkMiddleware((auth, req) => {
+  if (isProtectedRoute(req) && !auth().userId) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+});
+```
+
+### Prohibited Redirect Patterns:
+```typescript
+// ❌ Wrong - no dedicated sign-in page exists
+redirect("/sign-in");
+redirect("/login");
+
+// ✅ Correct - always redirect to homepage
+redirect("/");
+```
+
 ## Data Access Patterns
 
 ### Required User ID Verification
@@ -108,7 +156,7 @@ if (!deck.length) {
 ### Frontend Components
 
 - Use Clerk's `useUser()` hook for client-side user context
-- Redirect unauthorized users appropriately
+- Redirect unauthenticated users to `/` (the homepage) — never to a `/sign-in` page
 - Hide UI elements for resources user doesn't own
 
 ## Required Practices
