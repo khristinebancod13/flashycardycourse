@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { cardsTable, decksTable } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
 export async function getCardsByDeckId(deckId: number, userId: string) {
   return db
@@ -16,6 +16,23 @@ export async function getCardsByDeckId(deckId: number, userId: string) {
     .innerJoin(decksTable, eq(cardsTable.deckId, decksTable.id))
     .where(and(eq(cardsTable.deckId, deckId), eq(decksTable.userId, userId)))
     .orderBy(desc(cardsTable.updatedAt));
+}
+
+export async function getCardCountsByDeckIds(
+  deckIds: number[]
+): Promise<Record<number, number>> {
+  if (deckIds.length === 0) return {};
+
+  const rows = await db
+    .select({
+      deckId: cardsTable.deckId,
+      count: sql<number>`cast(count(*) as integer)`,
+    })
+    .from(cardsTable)
+    .where(inArray(cardsTable.deckId, deckIds))
+    .groupBy(cardsTable.deckId);
+
+  return Object.fromEntries(rows.map((r) => [r.deckId, r.count]));
 }
 
 export async function insertCard(data: {

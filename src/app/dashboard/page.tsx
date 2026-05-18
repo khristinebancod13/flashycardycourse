@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getDecksByUserId } from "@/db/queries/decks";
+import { getCardCountsByDeckIds } from "@/db/queries/cards";
 import {
   Card,
   CardHeader,
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
   }
 
   const decks = await getDecksByUserId(userId);
+  const cardCounts = await getCardCountsByDeckIds(decks.map((d) => d.id));
 
   const hasDeckLimit = has({ feature: "3_deck_limit" });
   const hasUnlimitedDecks = has({ feature: "unlimited_decks" });
@@ -88,7 +90,11 @@ export default async function DashboardPage() {
                     {deck.description ?? ""}
                   </p>
                 </CardContent>
-                <CardFooter className="border-t border-zinc-800 pt-3">
+                <CardFooter className="border-t border-zinc-800 pt-3 flex items-center justify-between">
+                  <p className="text-xs text-zinc-500">
+                    {cardCounts[deck.id] ?? 0}{" "}
+                    {(cardCounts[deck.id] ?? 0) === 1 ? "card" : "cards"}
+                  </p>
                   <p className="text-xs text-zinc-500">
                     Last updated:{" "}
                     {new Date(deck.updatedAt).toLocaleDateString()}
