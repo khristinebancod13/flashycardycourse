@@ -31,3 +31,15 @@ export const deleteCardSchema = z.object({
 });
 
 export type DeleteCardSchema = z.infer<typeof deleteCardSchema>;
+
+export const deleteDeckSchema = z.object({
+  deckId: z.number().int().positive(),
+});
+
+export type DeleteDeckSchema = z.infer<typeof deleteDeckSchema>;
+
+export const generateAICardsSchema = z.object({
+  deckId: z.number().int().positive(),
+});
+
+export type GenerateAICardsSchema = z.infer<typeof generateAICardsSchema>;

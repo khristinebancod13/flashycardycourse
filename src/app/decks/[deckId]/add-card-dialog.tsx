@@ -19,10 +19,10 @@ import { createCard } from "./actions";
 
 interface AddCardDialogProps {
   deckId: number;
-  trigger?: React.ReactNode;
+  label?: string;
 }
 
-export function AddCardDialog({ deckId, trigger }: AddCardDialogProps) {
+export function AddCardDialog({ deckId, label }: AddCardDialogProps) {
   const [open, setOpen] = useState(false);
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
@@ -62,7 +62,7 @@ export function AddCardDialog({ deckId, trigger }: AddCardDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger ?? <Button><Plus className="w-4 h-4 mr-1" />Add Card</Button>}
+        <Button><Plus className="w-4 h-4 mr-1" />{label ?? "Add Card"}</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

@@ -1,0 +1,112 @@
+---
+alwaysApply: true
+---
+
+# Vercel AI SDK Standards
+
+This project uses the **Vercel AI SDK** (`ai` package) with `@ai-sdk/openai` to call OpenAI for AI features — specifically AI flashcard generation. Never use the OpenAI SDK directly.
+
+## Flashcard Generation Pattern
+
+Use `generateText` with `Output.object()` and a Zod schema to generate structured flashcard arrays:
+
+```typescript
+import { generateText, Output } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+const cardSchema = z.object({
+  cards: z.array(
+    z.object({
+      front: z.string(),
+      back: z.string(),
+    })
+  ),
+});
+
+export type GeneratedCards = z.infer<typeof cardSchema>;
+
+export async function generateFlashcards(topic: string, count: number) {
+  const { output } = await generateText({
+    model: openai("gpt-4o"),
+    output: Output.object({ schema: cardSchema }),
+    prompt: `Generate ${count} flashcards about: ${topic}. Each card should have a concise front (question or term) and a clear back (answer or definition).`,
+  });
+
+  return output.cards;
+}
+```
+
+## Rules
+
+- **ALWAYS use `generateText` + `Output.object()`** for structured AI output — never use `fetch` or raw OpenAI API calls
+- **ALWAYS define a Zod schema** for the expected output shape and export its inferred type
+- **ALWAYS use `openai("gpt-4o")`** as the model unless a specific model is required
+- **NEVER call the AI SDK from Client Components** — AI generation must happen in Server Actions
+- **ALWAYS place AI generation logic in a Server Action** that validates input with Zod before calling the AI
+
+## Authentication & Billing Gate
+
+AI flashcard generation is a **Pro-only feature** (`ai_flashcard_generation`). Every Server Action that triggers AI generation must:
+
+1. Verify the user is authenticated via Clerk
+2. Check the user has the `ai_flashcard_generation` feature using `has()`
+3. Throw an error (never silently fail) if either check fails
+
+```typescript
+// src/app/decks/[deckId]/actions.ts
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { generateFlashcards } from "@/lib/ai";
+import { insertCard } from "@/db/queries/cards";
+
+export async function generateAndSaveCards(deckId: number, topic: string, count: number) {
+  const { userId, has } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const canUseAI = has({ feature: "ai_flashcard_generation" });
+  if (!canUseAI) throw new Error("AI flashcard generation requires a Pro plan.");
+
+  const cards = await generateFlashcards(topic, count);
+
+  for (const card of cards) {
+    await insertCard({ deckId, front: card.front, back: card.back });
+  }
+}
+```
+
+## Gating the UI (Client Components)
+
+Use Clerk's `<Show>` component to hide the AI generation button from free users and show an upgrade prompt instead:
+
+```tsx
+import { Show } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+
+<Show
+  when={{ feature: "ai_flashcard_generation" }}
+  fallback={
+    <p className="text-sm text-muted-foreground">
+      <a href="/pricing" className="underline">Upgrade to Pro</a> to use AI flashcard generation.
+    </p>
+  }
+>
+  <Button onClick={handleGenerateWithAI}>Generate with AI</Button>
+</Show>
+```
+
+## Prohibited Patterns
+
+```typescript
+// ❌ Never use the OpenAI SDK directly
+import OpenAI from "openai";
+const client = new OpenAI();
+
+// ❌ Never call AI from a Client Component
+"use client";
+const cards = await generateFlashcards(topic, 10); // Wrong
+
+// ❌ Never use unstructured text generation for flashcards
+const { text } = await generateText({ ... }); // Parse manually — use Output.object() instead
+```

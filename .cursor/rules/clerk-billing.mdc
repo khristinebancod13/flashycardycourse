@@ -1,0 +1,73 @@
+---
+alwaysApply: true
+---
+
+# Clerk Billing Standards
+
+This project uses **Clerk Billing** for all subscription and payment handling. Never use Stripe directly or any other payment library.
+
+## Available Plans
+
+- `free_user` — default free tier
+- `pro` — paid plan
+
+## Available Features
+
+- `3_deck_limit` — limits user to 3 decks (free tier)
+- `unlimited_decks` — no deck limit (pro tier)
+- `ai_flashcard_generation` — AI card generation (pro tier)
+
+## Checking Access — Server Components
+
+Use `has()` from `auth()` on the server side:
+
+```tsx
+import { auth } from '@clerk/nextjs/server'
+
+export default async function Page() {
+  const { has } = await auth()
+
+  const isPro = has({ plan: 'pro' })
+  const canUseAI = has({ feature: 'ai_flashcard_generation' })
+  const hasUnlimitedDecks = has({ feature: 'unlimited_decks' })
+}
+```
+
+## Checking Access — Client Components / JSX
+
+Use the `<Show>` component with a `fallback` for gating UI:
+
+```tsx
+import { Show } from '@clerk/nextjs'
+
+<Show
+  when={{ feature: 'unlimited_decks' }}
+  fallback={<p>Upgrade to Pro for unlimited decks.</p>}
+>
+  <CreateDeckButton />
+</Show>
+```
+
+## Pricing Page
+
+Use the `<PricingTable />` component on a dedicated `/pricing` page:
+
+```tsx
+import { PricingTable } from '@clerk/nextjs'
+
+export default function PricingPage() {
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 1rem' }}>
+      <PricingTable />
+    </div>
+  )
+}
+```
+
+## Rules
+
+- **NEVER** implement custom subscription logic, paywalls, or payment flows outside of Clerk Billing
+- **NEVER** call Stripe APIs directly — Clerk handles payment processing
+- Always use `has({ plan: '...' })` or `has({ feature: '...' })` — not custom flags or DB fields
+- Gate features using `has()` in Server Components or `<Show>` in Client Components
+- Redirect unauthenticated users to `/` before checking billing access

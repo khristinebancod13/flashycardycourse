@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -42,7 +43,9 @@ export default function RootLayout({
               </nav>
             </div>
           </header>
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
           <Toaster richColors closeButton duration={3000} />
         </ClerkProvider>
       </body>

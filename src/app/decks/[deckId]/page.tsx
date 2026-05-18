@@ -9,19 +9,23 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { AddCardDialog } from "./add-card-dialog";
 import { EditDeckDialog } from "./edit-deck-dialog";
 import { EditCardDialog } from "./edit-card-dialog";
 import { DeleteCardDialog } from "./delete-card-dialog";
+import { DeleteDeckDialog } from "./delete-deck-dialog";
+import { AIGenerateButton } from "./ai-generate-button";
 
 interface DeckPageProps {
   params: Promise<{ deckId: string }>;
 }
 
 export default async function DeckPage({ params }: DeckPageProps) {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
 
   if (!userId) {
     redirect("/");
@@ -43,6 +47,8 @@ export default async function DeckPage({ params }: DeckPageProps) {
     notFound();
   }
 
+  const hasAI = has({ feature: "ai_flashcard_generation" });
+
   return (
     <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-10">
       {/* Header */}
@@ -51,7 +57,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
           href="/dashboard"
           className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
         >
-          ← Back to My Decks
+          ← Back to Dashboard
         </Link>
       </div>
 
@@ -81,18 +87,41 @@ export default async function DeckPage({ params }: DeckPageProps) {
             initialName={deck.name}
             initialDescription={deck.description}
           />
-          <AddCardDialog deckId={parsedId} />
+          <DeleteDeckDialog deckId={parsedId} deckName={deck.name} />
         </div>
       </div>
 
+      {cards.length > 0 && (
+        <div className="mb-6">
+          <Button asChild size="lg" className="px-8 py-5 text-base font-semibold">
+            <Link href={`/decks/${parsedId}/study`}>
+              <BookOpen className="w-5 h-5 mr-2" />
+              Start Study Session
+            </Link>
+          </Button>
+        </div>
+      )}
+
       <Separator className="mb-8 bg-zinc-800" />
+
+      {/* Cards section header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-zinc-200">Cards</h2>
+        <div className="flex items-center gap-2">
+          <AIGenerateButton deckId={parsedId} hasAI={hasAI} hasDescription={!!deck.description?.trim()} />
+          {cards.length > 0 && <AddCardDialog deckId={parsedId} />}
+        </div>
+      </div>
 
       {/* Cards grid */}
       {cards.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-zinc-400 text-lg mb-4">No cards in this deck yet</p>
-            <AddCardDialog deckId={parsedId} />
+            <AddCardDialog
+              deckId={parsedId}
+              label="Add First Card"
+            />
           </CardContent>
         </Card>
       ) : (
