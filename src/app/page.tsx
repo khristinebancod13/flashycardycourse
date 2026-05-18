@@ -1,7 +1,9 @@
 import { SignInButton, SignUpButton, Show } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
+import { AutoSignUpModal } from "@/components/auto-signup-modal";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -11,6 +13,9 @@ export default async function Home() {
   }
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+      <Suspense>
+        <AutoSignUpModal />
+      </Suspense>
       <h1 className="text-5xl font-bold tracking-tight text-zinc-50">
         FlashyCardy
       </h1>

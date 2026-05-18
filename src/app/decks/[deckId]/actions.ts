@@ -83,7 +83,7 @@ export async function editCard(data: UpdateCardSchema) {
     throw new Error("Deck not found or access denied");
   }
 
-  const updated = await updateCard(validatedData.cardId, {
+  const updated = await updateCard(validatedData.cardId, validatedData.deckId, {
     front: validatedData.front,
     back: validatedData.back,
   });
@@ -111,7 +111,7 @@ export async function deleteCard(data: DeleteCardSchema) {
     throw new Error("Deck not found or access denied");
   }
 
-  await deleteCardById(validatedData.cardId);
+  await deleteCardById(validatedData.cardId, validatedData.deckId);
 
   revalidatePath(`/decks/${validatedData.deckId}`);
 }

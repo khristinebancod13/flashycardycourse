@@ -23,8 +23,8 @@ export default async function DashboardPage() {
   const decks = await getDecksByUserId(userId);
 
   const hasDeckLimit = has({ feature: "3_deck_limit" });
+  const hasUnlimitedDecks = has({ feature: "unlimited_decks" });
   const isPro = has({ plan: "pro" });
-  const atLimit = hasDeckLimit && decks.length >= 3;
 
   return (
     <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-10">
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
           <p className="text-zinc-400 mt-1">
             Manage and study your flashcard decks
           </p>
-          {!isPro && (
+          {hasDeckLimit && !hasUnlimitedDecks && (
             <p className="text-xs text-zinc-500 mt-1">
               {decks.length} / 3 decks used ·{" "}
               <Link
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
             </p>
           )}
         </div>
-        <CreateDeckDialog atLimit={atLimit} />
+        <CreateDeckDialog deckCount={decks.length} />
       </div>
 
       {decks.length > 0 && (
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-zinc-400 text-lg mb-4">No decks yet</p>
-            <CreateDeckDialog atLimit={atLimit} />
+            <CreateDeckDialog deckCount={decks.length} />
           </CardContent>
         </Card>
       ) : (

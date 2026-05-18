@@ -9,6 +9,8 @@ export async function createDeck(data: CreateDeckSchema) {
   const { userId, has } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  const validatedData = createDeckSchema.parse({ ...data, userId });
+
   const hasDeckLimit = has({ feature: "3_deck_limit" });
   if (hasDeckLimit) {
     const existingDecks = await getDecksByUserId(userId);
@@ -16,8 +18,6 @@ export async function createDeck(data: CreateDeckSchema) {
       throw new Error("Free plan limit reached. Upgrade to Pro for unlimited decks.");
     }
   }
-
-  const validatedData = createDeckSchema.parse({ ...data, userId });
   const deck = await insertDeck(validatedData);
   revalidatePath("/dashboard");
   return deck;

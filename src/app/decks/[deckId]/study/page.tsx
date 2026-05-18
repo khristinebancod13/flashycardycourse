@@ -25,7 +25,7 @@ export default async function StudyPage({ params }: StudyPageProps) {
 
   const [deck, cards] = await Promise.all([
     getDeckById(parsedId, userId),
-    getCardsByDeckId(parsedId),
+    getCardsByDeckId(parsedId, userId),
   ]);
 
   if (!deck) {

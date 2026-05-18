@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Lock } from "lucide-react";
+import { Show } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,10 +21,10 @@ import { createDeck } from "./actions";
 import Link from "next/link";
 
 interface CreateDeckDialogProps {
-  atLimit?: boolean;
+  deckCount: number;
 }
 
-export function CreateDeckDialog({ atLimit = false }: CreateDeckDialogProps) {
+export function CreateDeckDialog({ deckCount }: CreateDeckDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -54,34 +55,32 @@ export function CreateDeckDialog({ atLimit = false }: CreateDeckDialogProps) {
     }
   }
 
-  if (atLimit) {
-    return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            <Lock className="mr-2 h-4 w-4" />
-            Create New Deck
+  const lockedDialog = (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Lock className="mr-2 h-4 w-4" />
+          Create New Deck
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Deck Limit Reached</DialogTitle>
+          <DialogDescription>
+            You&apos;ve used all 3 decks on the free plan. Upgrade to Pro for
+            unlimited decks and AI flashcard generation.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="mt-4">
+          <Button asChild>
+            <Link href="/pricing">View Pricing</Link>
           </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Deck Limit Reached</DialogTitle>
-            <DialogDescription>
-              You&apos;ve used all 3 decks on the free plan. Upgrade to Pro for
-              unlimited decks and AI flashcard generation.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button asChild>
-              <Link href="/pricing">View Pricing</Link>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
-  return (
+  const createDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
@@ -127,5 +126,14 @@ export function CreateDeckDialog({ atLimit = false }: CreateDeckDialogProps) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+
+  return (
+    <Show
+      when={{ feature: "3_deck_limit" }}
+      fallback={createDialog}
+    >
+      {deckCount >= 3 ? lockedDialog : createDialog}
+    </Show>
   );
 }

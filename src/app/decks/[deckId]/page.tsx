@@ -25,7 +25,7 @@ interface DeckPageProps {
 }
 
 export default async function DeckPage({ params }: DeckPageProps) {
-  const { userId, has } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/");
@@ -40,14 +40,13 @@ export default async function DeckPage({ params }: DeckPageProps) {
 
   const [deck, cards] = await Promise.all([
     getDeckById(parsedId, userId),
-    getCardsByDeckId(parsedId),
+    getCardsByDeckId(parsedId, userId),
   ]);
 
   if (!deck) {
     notFound();
   }
 
-  const hasAI = has({ feature: "ai_flashcard_generation" });
 
   return (
     <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-10">
@@ -108,7 +107,7 @@ export default async function DeckPage({ params }: DeckPageProps) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-zinc-200">Cards</h2>
         <div className="flex items-center gap-2">
-          <AIGenerateButton deckId={parsedId} hasAI={hasAI} hasDescription={!!deck.description?.trim()} />
+          <AIGenerateButton deckId={parsedId} hasDescription={!!deck.description?.trim()} />
           {cards.length > 0 && <AddCardDialog deckId={parsedId} />}
         </div>
       </div>
