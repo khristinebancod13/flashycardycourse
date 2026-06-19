@@ -42,7 +42,7 @@ export function CreateDeckDialog({ deckCount }: CreateDeckDialogProps) {
 
     setLoading(true);
     try {
-      await createDeck({ name: name.trim(), description: description.trim() || undefined, userId: "" });
+      await createDeck({ name: name.trim(), description: description.trim() || undefined });
       toast.success(`"${name.trim()}" deck created!`);
       setOpen(false);
       setName("");

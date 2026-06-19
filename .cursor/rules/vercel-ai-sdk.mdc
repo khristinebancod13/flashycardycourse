@@ -4,7 +4,7 @@ alwaysApply: true
 
 # Vercel AI SDK Standards
 
-This project uses the **Vercel AI SDK** (`ai` package) with `@ai-sdk/openai` to call OpenAI for AI features — specifically AI flashcard generation. Never use the OpenAI SDK directly.
+This project uses the **Vercel AI SDK** (`ai` package) with `@openrouter/ai-sdk-provider` to call models via OpenRouter for AI features — specifically AI flashcard generation. Never use the OpenAI SDK directly or `@ai-sdk/openai`.
 
 ## Flashcard Generation Pattern
 
@@ -12,8 +12,12 @@ Use `generateText` with `Output.object()` and a Zod schema to generate structure
 
 ```typescript
 import { generateText, Output } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 const cardSchema = z.object({
   cards: z.array(
@@ -28,7 +32,7 @@ export type GeneratedCards = z.infer<typeof cardSchema>;
 
 export async function generateFlashcards(topic: string, count: number) {
   const { output } = await generateText({
-    model: openai("gpt-4o"),
+    model: openrouter("openai/gpt-4o"),
     output: Output.object({ schema: cardSchema }),
     prompt: `Generate ${count} flashcards about: ${topic}. Each card should have a concise front (question or term) and a clear back (answer or definition).`,
   });
@@ -39,9 +43,11 @@ export async function generateFlashcards(topic: string, count: number) {
 
 ## Rules
 
-- **ALWAYS use `generateText` + `Output.object()`** for structured AI output — never use `fetch` or raw OpenAI API calls
+- **ALWAYS use `generateText` + `Output.object()`** for structured AI output — never use `fetch` or raw API calls
 - **ALWAYS define a Zod schema** for the expected output shape and export its inferred type
-- **ALWAYS use `openai("gpt-4o")`** as the model unless a specific model is required
+- **ALWAYS use `openrouter("openai/gpt-4o")`** as the model unless a specific model is required
+- **ALWAYS use `@openrouter/ai-sdk-provider`** — never use `@ai-sdk/openai` or the OpenAI SDK directly
+- **ALWAYS read the API key from `process.env.OPENROUTER_API_KEY`**
 - **NEVER call the AI SDK from Client Components** — AI generation must happen in Server Actions
 - **ALWAYS place AI generation logic in a Server Action** that validates input with Zod before calling the AI
 
@@ -102,6 +108,9 @@ import { Button } from "@/components/ui/button";
 // ❌ Never use the OpenAI SDK directly
 import OpenAI from "openai";
 const client = new OpenAI();
+
+// ❌ Never use @ai-sdk/openai
+import { openai } from "@ai-sdk/openai";
 
 // ❌ Never call AI from a Client Component
 "use client";

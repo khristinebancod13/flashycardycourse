@@ -3,13 +3,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { insertDeck, getDecksByUserId } from "@/db/queries/decks";
-import { createDeckSchema, type CreateDeckSchema } from "./schemas";
+import { createDeckSchema, createDeckInputSchema, type CreateDeckInput } from "./schemas";
 
-export async function createDeck(data: CreateDeckSchema) {
+export async function createDeck(data: CreateDeckInput) {
   const { userId, has } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const validatedData = createDeckSchema.parse({ ...data, userId });
+  const validatedInput = createDeckInputSchema.parse(data);
+  const validatedData = createDeckSchema.parse({ ...validatedInput, userId });
 
   const hasDeckLimit = has({ feature: "3_deck_limit" });
   if (hasDeckLimit) {

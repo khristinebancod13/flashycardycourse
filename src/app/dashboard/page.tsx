@@ -10,7 +10,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { Zap, Crown, Sparkles } from "lucide-react";
+import { Crown, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreateDeckDialog } from "./create-deck-dialog";
 

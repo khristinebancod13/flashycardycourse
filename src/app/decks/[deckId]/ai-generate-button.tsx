@@ -31,7 +31,8 @@ export function AIGenerateButton({ deckId, hasDescription }: AIGenerateButtonPro
         toast.error(result.error);
         return;
       }
-      toast.success(`Generated ${result.count} cards with AI!`);
+      const skippedMsg = result.skipped > 0 ? ` (${result.skipped} duplicate${result.skipped === 1 ? "" : "s"} skipped)` : "";
+      toast.success(`Generated ${result.count} card${result.count === 1 ? "" : "s"} with AI!${skippedMsg}`);
       router.refresh();
     } catch {
       toast.error("Something went wrong. Please try again.");

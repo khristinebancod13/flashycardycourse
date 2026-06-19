@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { getDeckById, updateDeck, deleteDeckById } from "@/db/queries/decks";
-import { insertCard, updateCard, deleteCardById } from "@/db/queries/cards";
+import { insertCard, updateCard, deleteCardById, getCardsByDeckId } from "@/db/queries/cards";
 import { generateFlashcards } from "@/lib/ai";
 import {
   createCardSchema,
@@ -147,17 +147,35 @@ export async function generateAndSaveCards(data: GenerateAICardsSchema) {
     return { success: false as const, error: "AI flashcard generation requires a Pro plan." };
   }
 
-  const validatedData = generateAICardsSchema.parse(data);
-
-  const deck = await getDeckById(validatedData.deckId, userId);
-  if (!deck) {
-    return { success: false as const, error: "Deck not found or access denied" };
-  }
-
   try {
+    const validatedData = generateAICardsSchema.parse(data);
+
+    const deck = await getDeckById(validatedData.deckId, userId);
+    if (!deck) {
+      return { success: false as const, error: "Deck not found or access denied" };
+    }
+
     const generatedCards = await generateFlashcards(deck.name, deck.description ?? null, 20);
 
-    for (const card of generatedCards) {
+    if (generatedCards.length === 0) {
+      return { success: false as const, error: "AI returned no cards. Please try again." };
+    }
+
+    const existingCards = await getCardsByDeckId(validatedData.deckId, userId);
+    const existingFronts = new Set(existingCards.map((c) => c.front.toLowerCase().trim()));
+
+    const newCards = generatedCards.filter(
+      (c) => !existingFronts.has(c.front.toLowerCase().trim())
+    );
+
+    if (newCards.length === 0) {
+      return {
+        success: false as const,
+        error: "All generated cards already exist in this deck. No new cards were added.",
+      };
+    }
+
+    for (const card of newCards) {
       await insertCard({
         deckId: validatedData.deckId,
         front: card.front,
@@ -168,8 +186,9 @@ export async function generateAndSaveCards(data: GenerateAICardsSchema) {
     revalidatePath(`/decks/${validatedData.deckId}`);
     revalidatePath(`/decks/${validatedData.deckId}/study`);
 
-    return { success: true as const, count: generatedCards.length };
-  } catch {
-    return { success: false as const, error: "Failed to generate cards. Please try again." };
+    return { success: true as const, count: newCards.length, skipped: generatedCards.length - newCards.length };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to generate cards. Please try again.";
+    return { success: false as const, error: message };
   }
 }
